@@ -153,10 +153,10 @@ namespace :release do
     # Create (or update) release
     puts "Pushing release notes for tag #{version}"
     begin
-      release = client.release_for_tag("SwiftGen/#{repo_name}", version)
+      release = client.release_for_tag("LeaderBoy/#{repo_name}", version)
       client.update_release(release.url, tag_name: version, name: version, body: body)
     rescue Octokit::NotFound
-      release = client.create_release("SwiftGen/#{repo_name}", version, name: version, body: body)
+      release = client.create_release("LeaderBoy/#{repo_name}", version, name: version, body: body)
     end
 
     # Upload our artifacts
