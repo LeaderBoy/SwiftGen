@@ -11,11 +11,11 @@
     {%- endif -%}
   {%- endfor -%}
 {% endmacro %}
-{% set enumName %}{{param.enumName|default:"R"}}{% endset %}
-{% set imageType %}{{param.imageTypeName|default:"ImageAsset"}}{% endset %}
+{% set enumName %}R{% endset %}
+{% set colorType %}{{param.colorTypeName|default:"ColorAsset"}}{% endset %}
 {% set forceNamespaces %}{{param.forceProvidesNamespaces|default:"false"}}{% endset %}
 {% set accessModifier %}{% if param.publicAccess %}public{% else %}internal{% endif %}{% endset %}
-{% set hasImage %}{% for catalog in catalogs %}{% call hasValuesBlock catalog.assets "image" %}{% endfor %}{% endset %}
+{% set hasColor %}{% for catalog in catalogs %}{% call hasValuesBlock catalog.assets "color" %}{% endfor %}{% endset %}
 #if os(macOS)
   import AppKit
 #elseif os(iOS)
@@ -28,9 +28,9 @@
 #endif
 
 // Deprecated typealiases
-{% if hasImage %}
-@available(*, deprecated, renamed: "{{imageType}}.Image", message: "This typealias will be removed in SwiftGen 7.0")
-{{accessModifier}} typealias {{param.imageAliasName|default:"AssetImageTypeAlias"}} = {{imageType}}.Image
+{% if hasColor %}
+@available(*, deprecated, renamed: "{{colorType}}.Color", message: "This typealias will be removed in SwiftGen 7.0")
+{{accessModifier}} typealias {{param.colorAliasName|default:"AssetColorTypeAlias"}} = {{colorType}}.Color
 {% endif %}
 
 // swiftlint:disable superfluous_disable_command file_length implicit_return
@@ -42,8 +42,8 @@
 
 {% macro casesBlock assets %}
   {% for asset in assets %}
-  {% if asset.type == "image" %}
-  {{accessModifier}} static let {{asset.name|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = {{imageType}}(name: "{{asset.value}}")
+  {% if asset.type == "color" %}
+  {{accessModifier}} static let {{asset.name|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = {{colorType}}(name: "{{asset.value}}")
   {% elif asset.items and ( forceNamespaces == "true" or asset.isNamespaced == "true" ) %}
   {{accessModifier}} enum {{asset.name|swiftIdentifier:"pretty"|escapeReservedKeywords}} {
     {% filter indent:2," ",true %}{% call casesBlock asset.items %}{% endfilter %}
@@ -57,7 +57,7 @@
 // swiftlint:disable identifier_name line_length nesting type_body_length type_name
 {{accessModifier}} extension enum {{enumName}} {
   {% for catalog in catalogs %}
-  {{accessModifier}} enum {{catalog.name|swiftIdentifier:"pretty"|escapeReservedKeywords}} {
+  {{accessModifier}} enum Color {
     {% if catalog.assets %}
     {% filter indent:2," ",true %}{% call enumBlock catalog.assets %}{% endfilter %}
     {% endif %}
@@ -67,63 +67,56 @@
 // swiftlint:enable identifier_name line_length nesting type_body_length type_name
 
 // MARK: - Implementation Details
-{% if hasImage %}
+{% if hasColor %}
 
-{{accessModifier}} struct {{imageType}} {
+{{accessModifier}} final class {{colorType}} {
   {{accessModifier}} fileprivate(set) var name: String
 
   #if os(macOS)
-  {{accessModifier}} typealias Image = NSImage
+  {{accessModifier}} typealias Color = NSColor
   #elseif os(iOS) || os(tvOS) || os(watchOS)
-  {{accessModifier}} typealias Image = UIImage
+  {{accessModifier}} typealias Color = UIColor
   #endif
 
-  @available(iOS 8.0, tvOS 9.0, watchOS 2.0, macOS 10.7, *)
-  {{accessModifier}} var image: Image {
-    let bundle = {{param.bundle|default:"BundleToken.bundle"}}
-    #if os(iOS) || os(tvOS)
-    let image = Image(named: name, in: bundle, compatibleWith: nil)
-    #elseif os(macOS)
-    let name = NSImage.Name(self.name)
-    let image = (bundle == .main) ? NSImage(named: name) : bundle.image(forResource: name)
-    #elseif os(watchOS)
-    let image = Image(named: name)
-    #endif
-    guard let result = image else {
-      fatalError("Unable to load image asset named \(name).")
+  @available(iOS 11.0, tvOS 11.0, watchOS 4.0, macOS 10.13, *)
+  {{accessModifier}} private(set) lazy var color: Color = {
+    guard let color = Color(asset: self) else {
+      fatalError("Unable to load color asset named \(name).")
     }
-    return result
-  }
+    return color
+  }()
 
   #if os(iOS) || os(tvOS)
-  @available(iOS 8.0, tvOS 9.0, *)
-  {{accessModifier}} func image(compatibleWith traitCollection: UITraitCollection) -> Image {
+  @available(iOS 11.0, tvOS 11.0, *)
+  {{accessModifier}} func color(compatibleWith traitCollection: UITraitCollection) -> Color {
     let bundle = {{param.bundle|default:"BundleToken.bundle"}}
-    guard let result = Image(named: name, in: bundle, compatibleWith: traitCollection) else {
-      fatalError("Unable to load image asset named \(name).")
+    guard let color = Color(named: name, in: bundle, compatibleWith: traitCollection) else {
+      fatalError("Unable to load color asset named \(name).")
     }
-    return result
+    return color
   }
   #endif
 
   #if canImport(SwiftUI)
   @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-  {{accessModifier}} var swiftUIImage: SwiftUI.Image {
-    SwiftUI.Image(asset: self)
-  }
+  {{accessModifier}} private(set) lazy var swiftUIColor: SwiftUI.Color = {
+    SwiftUI.Color(asset: self)
+  }()
   #endif
+
+  fileprivate init(name: String) {
+    self.name = name
+  }
 }
 
-{{accessModifier}} extension {{imageType}}.Image {
-  @available(iOS 8.0, tvOS 9.0, watchOS 2.0, *)
-  @available(macOS, deprecated,
-    message: "This initializer is unsafe on macOS, please use the {{imageType}}.image property")
-  convenience init?(asset: {{imageType}}) {
-    #if os(iOS) || os(tvOS)
+{{accessModifier}} extension {{colorType}}.Color {
+  @available(iOS 11.0, tvOS 11.0, watchOS 4.0, macOS 10.13, *)
+  convenience init?(asset: {{colorType}}) {
     let bundle = {{param.bundle|default:"BundleToken.bundle"}}
+    #if os(iOS) || os(tvOS)
     self.init(named: asset.name, in: bundle, compatibleWith: nil)
     #elseif os(macOS)
-    self.init(named: NSImage.Name(asset.name))
+    self.init(named: NSColor.Name(asset.name), bundle: bundle)
     #elseif os(watchOS)
     self.init(named: asset.name)
     #endif
@@ -132,24 +125,15 @@
 
 #if canImport(SwiftUI)
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-{{accessModifier}} extension SwiftUI.Image {
-  init(asset: {{imageType}}) {
+{{accessModifier}} extension SwiftUI.Color {
+  init(asset: {{colorType}}) {
     let bundle = {{param.bundle|default:"BundleToken.bundle"}}
     self.init(asset.name, bundle: bundle)
-  }
-
-  init(asset: {{imageType}}, label: Text) {
-    let bundle = {{param.bundle|default:"BundleToken.bundle"}}
-    self.init(asset.name, bundle: bundle, label: label)
-  }
-
-  init(decorative asset: {{imageType}}) {
-    let bundle = {{param.bundle|default:"BundleToken.bundle"}}
-    self.init(decorative: asset.name, bundle: bundle)
   }
 }
 #endif
 {% endif %}
+
 {% if not param.bundle %}
 
 // swiftlint:disable convenience_type

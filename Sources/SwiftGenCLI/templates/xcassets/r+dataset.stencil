@@ -1,0 +1,107 @@
+// swiftlint:disable all
+// Generated using SwiftGen — https://github.com/SwiftGen/SwiftGen
+
+{% if catalogs %}
+{% macro hasValuesBlock assets filter %}
+  {%- for asset in assets -%}
+    {%- if asset.type == filter -%}
+      1
+    {%- elif asset.items -%}
+      {% call hasValuesBlock asset.items filter %}
+    {%- endif -%}
+  {%- endfor -%}
+{% endmacro %}
+{% set enumName %}R{% endset %}
+{% set dataType %}{{param.dataTypeName|default:"DataAsset"}}{% endset %}
+{% set forceNamespaces %}{{param.forceProvidesNamespaces|default:"false"}}{% endset %}
+{% set accessModifier %}{% if param.publicAccess %}public{% else %}internal{% endif %}{% endset %}
+{% set hasData %}{% for catalog in catalogs %}{% call hasValuesBlock catalog.assets "data" %}{% endfor %}{% endset %}
+#if os(macOS)
+  import AppKit
+#elseif os(iOS)
+  import UIKit
+#elseif os(tvOS) || os(watchOS)
+  import UIKit
+#endif
+#if canImport(SwiftUI)
+  import SwiftUI
+#endif
+
+// swiftlint:disable superfluous_disable_command file_length implicit_return
+
+// MARK: - Asset Catalogs
+{% macro enumBlock assets %}
+  {% call casesBlock assets %}
+{% endmacro %}
+
+{% macro casesBlock assets %}
+  {% for asset in assets %}
+  {% if asset.type == "data" %}
+  {{accessModifier}} static let {{asset.name|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = {{dataType}}(name: "{{asset.value}}")
+  {% elif asset.items and ( forceNamespaces == "true" or asset.isNamespaced == "true" ) %}
+  {{accessModifier}} enum {{asset.name|swiftIdentifier:"pretty"|escapeReservedKeywords}} {
+    {% filter indent:2," ",true %}{% call casesBlock asset.items %}{% endfilter %}
+  }
+  {% elif asset.items %}
+  {% call casesBlock asset.items %}
+  {% endif %}
+  {% endfor %}
+{% endmacro %}
+
+// swiftlint:disable identifier_name line_length nesting type_body_length type_name
+{{accessModifier}} extension enum {{enumName}} {
+  {% for catalog in catalogs %}
+  {{accessModifier}} enum DataSet {
+    {% if catalog.assets %}
+    {% filter indent:2," ",true %}{% call enumBlock catalog.assets %}{% endfilter %}
+    {% endif %}
+  }
+  {% endfor %}
+}
+// swiftlint:enable identifier_name line_length nesting type_body_length type_name
+
+// MARK: - Implementation Details
+{% if hasData %}
+
+{{accessModifier}} struct {{dataType}} {
+  {{accessModifier}} fileprivate(set) var name: String
+
+  @available(iOS 9.0, tvOS 9.0, watchOS 6.0, macOS 10.11, *)
+  {{accessModifier}} var data: NSDataAsset {
+    guard let data = NSDataAsset(asset: self) else {
+      fatalError("Unable to load data asset named \(name).")
+    }
+    return data
+  }
+}
+
+@available(iOS 9.0, tvOS 9.0, watchOS 6.0, macOS 10.11, *)
+{{accessModifier}} extension NSDataAsset {
+  convenience init?(asset: {{dataType}}) {
+    let bundle = {{param.bundle|default:"BundleToken.bundle"}}
+    #if os(iOS) || os(tvOS) || os(watchOS)
+    self.init(name: asset.name, bundle: bundle)
+    #elseif os(macOS)
+    self.init(name: NSDataAsset.Name(asset.name), bundle: bundle)
+    #endif
+  }
+}
+{% endif %}
+{% if not param.bundle %}
+
+// swiftlint:disable convenience_type
+private final class BundleToken {
+  static let bundle: Bundle = {
+    #if SWIFT_PACKAGE
+    return Bundle.module
+    #else
+    return Bundle(for: BundleToken.self)
+    #endif
+  }()
+}
+// swiftlint:enable convenience_type
+{% endif %}
+{% else %}
+// No assets found
+{% endif %}
+
