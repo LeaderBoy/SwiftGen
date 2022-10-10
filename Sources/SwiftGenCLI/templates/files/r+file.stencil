@@ -35,7 +35,7 @@ import Foundation
 {% endmacro %}
 // swiftlint:disable explicit_type_interface identifier_name
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
-{{accessModifier}} extension enum R {
+{{accessModifier}} extension R {
   {{accessModifier}} enum {{enumName}} {
     {% if groups.count > 1 or param.forceFileNameEnum %}
     {% for group in groups %}

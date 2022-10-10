@@ -49,7 +49,7 @@
 {% endmacro %}
 
 // swiftlint:disable identifier_name line_length nesting type_body_length type_name
-{{accessModifier}} extension enum {{enumName}} {
+{{accessModifier}} extension {{enumName}} {
   {% for catalog in catalogs %}
   {{accessModifier}} enum AR {
     {% if catalog.assets %}
