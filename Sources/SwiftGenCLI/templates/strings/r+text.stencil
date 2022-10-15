@@ -38,15 +38,15 @@ import Foundation
   /// {{line}}
   {% endfor %}
   {% endif %}
-  {% set translation string.translation|replace:'"','\"'|replace:'	','\t' %}
+  {% set translation string.translation|replace:'"','\"'|replace:'    ','\t' %}
   {% if string.types %}
   {{accessModifier}} static func {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}({% call parametersBlock string.types %}) -> String {
-    return R.{{enumName}}.tr("{{table}}", "{{string.key}}", {%+ call argumentsBlock string.types %}, fallback: "{{translation}}")
+    return {{enumName}}.tr("{{table}}", "{{string.key}}", {%+ call argumentsBlock string.types %}, fallback: "{{translation}}")
   }
   {% elif param.lookupFunction %}
-  {{accessModifier}} static var {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}: String { return R.{{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}") }
+  {{accessModifier}} static var {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}: String { return {{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}") }
   {% else %}
-  {{accessModifier}} static let {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = R.{{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}")
+    {{accessModifier}} static let {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = {{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}")
   {% endif %}
   {% endfor %}
   {% for child in item.children %}
@@ -55,9 +55,7 @@ import Foundation
 {% endmacro %}
 // swiftlint:disable function_parameter_count identifier_name line_length type_body_length
 {% set enumName %}{{param.enumName|default:"Text"}}{% endset %}
-
 {{accessModifier}} extension R {
-  {% for catalog in catalogs %}
   enum {{enumName}} {
     {% if tables.count > 1 or param.forceFileNameEnum %}
     {% for table in tables %}
@@ -66,7 +64,7 @@ import Foundation
     }
     {% endfor %}
     {% else %}
-    {% call recursiveBlock tables.first.name tables.first.levels %}
+      {% call recursiveBlock tables.first.name tables.first.levels %}
     {% endif %}
   }
 }
