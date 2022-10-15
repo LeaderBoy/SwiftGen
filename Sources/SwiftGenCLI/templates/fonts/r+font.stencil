@@ -30,7 +30,7 @@
   {%- endif -%}
 {% endmacro %}
 {{accessModifier}} extension R {
-  {{accessModifier}} enum {{param.enumName|default:"Font"}} {
+  enum {{param.enumName|default:"Font"}} {
     {% for family in families %}
     {{accessModifier}} enum {{family.name|swiftIdentifier:"pretty"|escapeReservedKeywords}} {
       {% for font in family.fonts %}

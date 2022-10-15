@@ -41,12 +41,12 @@ import Foundation
   {% set translation string.translation|replace:'"','\"'|replace:'	','\t' %}
   {% if string.types %}
   {{accessModifier}} static func {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}({% call parametersBlock string.types %}) -> String {
-    return {{enumName}}.tr("{{table}}", "{{string.key}}", {%+ call argumentsBlock string.types %}, fallback: "{{translation}}")
+    return R.{{enumName}}.tr("{{table}}", "{{string.key}}", {%+ call argumentsBlock string.types %}, fallback: "{{translation}}")
   }
   {% elif param.lookupFunction %}
-  {{accessModifier}} static var {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}: String { return {{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}") }
+  {{accessModifier}} static var {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}: String { return R.{{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}") }
   {% else %}
-  {{accessModifier}} static let {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = {{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}")
+  {{accessModifier}} static let {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = R.{{enumName}}.tr("{{table}}", "{{string.key}}", fallback: "{{translation}}")
   {% endif %}
   {% endfor %}
   {% for child in item.children %}
@@ -58,7 +58,7 @@ import Foundation
 
 {{accessModifier}} extension R {
   {% for catalog in catalogs %}
-  {{accessModifier}} enum {{enumName}} {
+  enum {{enumName}} {
     {% if tables.count > 1 or param.forceFileNameEnum %}
     {% for table in tables %}
     {{accessModifier}} enum {{table.name|swiftIdentifier:"pretty"|escapeReservedKeywords}} {
